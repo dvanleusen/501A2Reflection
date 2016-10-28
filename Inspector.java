@@ -101,9 +101,9 @@ public class Inspector
     		return "";
     }
     
-    // this method finds the methods the class declares, which also include
-    // exceptions thrown, the parameter types, the return type, the modifiers
-    // it also returns them for unit tests
+
+    
+    // helps with printing methods information
     private String addedNewLine(String s1, String s2){
     	if (s2.equals(""))
     		return s1+s2;
@@ -111,6 +111,9 @@ public class Inspector
     		return s1+s2+"\n";
     }
     
+    // this method finds the methods the class declares, which also include
+    // exceptions thrown, the parameter types, the return type, the modifiers
+    // it also returns them for unit tests
     public String inspectMethods(Class objClass){
     	if (objClass.getDeclaredMethods()!= null){
     		String printString = "";
@@ -141,11 +144,42 @@ public class Inspector
     			printString = addedNewLine(printString, printString2);
     			
     			// get the return type under method
-
     			printString += "\tReturn type: " +  methodNames[i].getReturnType().getName() + "\n";
     			
     			// get the modifiers under method
     			int modifiers = methodNames[i].getModifiers();
+    			printString += "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
+    		}    		
+	    	System.out.println(printString);
+    		return printString;
+    	}
+    	else
+    		return "";
+    }
+    
+    // this method finds the constructors the class declares, which also include
+    // the parameter types and the modifiers; it also returns them for unit tests
+    public String inspectConstructors(Class objClass){
+    	if (objClass.getConstructors()!= null){
+    		String printString = "";
+    		String printString2 = "";
+    		Constructor[] constructorNames = objClass.getConstructors();
+    		for (int i = 0; i < constructorNames.length; i++){
+    			printString += "Constructor: " + constructorNames[i].getName() + "\n";
+    			
+    			// get the parameter types under constructor
+    			Class<?>[] parameterTypes = constructorNames[i].getParameterTypes();
+    			printString2 = "";
+    			for (int j = 0; j < parameterTypes.length; j++){
+    				if (printString2.equals(""))
+    						printString2 += "\tParameter type(s): " + parameterTypes[j].getName();
+    				else
+    						printString2 += ", "+parameterTypes[j].getName();
+    			}
+    			printString = addedNewLine(printString, printString2);
+    			
+    			// get the modifiers under constructor
+    			int modifiers = constructorNames[i].getModifiers();
     			printString += "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
     		}    		
 	    	System.out.println(printString);
