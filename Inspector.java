@@ -133,22 +133,13 @@ public class Inspector
     			printString = addedNewLine(printString, printString2);
     			
     			// get the parameter types under method
-    			Class<?>[] parameterTypes = methodNames[i].getParameterTypes();
-    			printString2 = "";
-    			for (int j = 0; j < parameterTypes.length; j++){
-    				if (printString2.equals(""))
-    						printString2 += "\tParameter type(s): " + parameterTypes[j].getName();
-    				else
-    						printString2 += ", "+parameterTypes[j].getName();
-    			}
-    			printString = addedNewLine(printString, printString2);
+    			printString = addedNewLine(printString, getParameters(methodNames[i]));
     			
     			// get the return type under method
     			printString += "\tReturn type: " +  methodNames[i].getReturnType().getName() + "\n";
     			
     			// get the modifiers under method
-    			int modifiers = methodNames[i].getModifiers();
-    			printString += "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
+    			printString += getModifiers(methodNames[i]);
     		}    		
 	    	System.out.println(printString);
     		return printString;
@@ -168,25 +159,57 @@ public class Inspector
     			printString += "Constructor: " + constructorNames[i].getName() + "\n";
     			
     			// get the parameter types under constructor
-    			Class<?>[] parameterTypes = constructorNames[i].getParameterTypes();
-    			printString2 = "";
-    			for (int j = 0; j < parameterTypes.length; j++){
-    				if (printString2.equals(""))
-    						printString2 += "\tParameter type(s): " + parameterTypes[j].getName();
-    				else
-    						printString2 += ", "+parameterTypes[j].getName();
-    			}
-    			printString = addedNewLine(printString, printString2);
+    			printString = addedNewLine(printString, getParameters(constructorNames[i]));
     			
     			// get the modifiers under constructor
-    			int modifiers = constructorNames[i].getModifiers();
-    			printString += "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
+    			printString += getModifiers(constructorNames[i]);
     		}    		
 	    	System.out.println(printString);
     		return printString;
     	}
     	else
     		return "";
+    }
+    
+    // gets parameter types for objects
+    private String getParameters(Object obj){
+    	String printString2 = "";
+    	Class<?>[] parameterTypes = null;
+    	if (obj.getClass().getSimpleName().equals("Method")){
+    		Method m = (Method) obj;
+    		parameterTypes = m.getParameterTypes();
+    	}
+    	
+    	else if (obj.getClass().getSimpleName().equals("Constructor")){
+    		Constructor c = (Constructor) obj;
+    		parameterTypes = c.getParameterTypes();
+    	}
+    	
+		for (int j = 0; j < parameterTypes.length; j++){
+			if (printString2.equals(""))
+					printString2 += "\tParameter type(s): " + parameterTypes[j].getName();
+			else
+					printString2 += ", "+parameterTypes[j].getName();
+		}
+    	return printString2;
+    }
+    
+    // gets modifiers for objects
+    private String getModifiers(Object obj){
+        String printString2 = "";
+        int modifiers = 0;
+        if (obj.getClass().getSimpleName().equals("Method")){
+        	Method m = (Method) obj;
+        	modifiers = m.getModifiers();
+        }
+        	
+        else if (obj.getClass().getSimpleName().equals("Constructor")){
+        	Constructor c = (Constructor) obj;
+        	modifiers = c.getModifiers();
+    	}
+        return "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
+    	//else if (obj.getClass().getSimpleName().equals("Method"))
+    	
     }
 //==============================================================================================  
     private void inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
