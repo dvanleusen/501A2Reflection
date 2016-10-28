@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.print.DocFlavor.STRING;
+
 
 /**
  * Assignment 2
@@ -20,54 +22,163 @@ import java.util.List;
 
 public class Inspector
 {
+	// initializes variables and arrayList to check if an object is already inspected
     public Inspector() { }
+    private ArrayList inspectedList = new ArrayList();
+    boolean chkInspectedList;
 
-    //-----------------------------------------------------------
-    public void inspect(Object obj, boolean recursive)
-    {
-	Vector objectsToInspect = new Vector();
-	Class ObjClass = obj.getClass();
-
-	System.out.println("inside inspector: " + obj + " (recursive = "+recursive+")");
-	
-	//inspect the current class
-	inspectFields(obj, ObjClass,objectsToInspect);
-	
-	if(recursive)
-	    inspectFieldClasses( obj, ObjClass, objectsToInspect, recursive);
-    }
-    //-----------------------------------------------------------
-    private void inspectFieldClasses(Object obj,Class ObjClass,
-				     Vector objectsToInspect,boolean recursive)
-    {
-	
-	if(objectsToInspect.size() > 0 )
-	    System.out.println("---- Inspecting Field Classes ----");
-	
-	Enumeration e = objectsToInspect.elements();
-	while(e.hasMoreElements())
-	    {
-		Field f = (Field) e.nextElement();
-		System.out.println("Inspecting Field: " + f.getName() );
+    // takes in recursive boolean and the object and inspects specific object
+    public void inspect(Object obj, boolean recursive){
+		chkInspectedList=false;
+		System.out.println("inside inspector: " + obj + " (recursive = "+recursive+")");
+		this.inspectDeclaringClass(obj);
+		this.inspectSuperClass(obj.getClass());
+		this.inspectInterfaces(obj.getClass());
+		this.inspectMethods(obj.getClass()); 
+		this.inspectConstructors(obj.getClass()) 		;   		
 		
-		try
-		    {
-			System.out.println("******************");
-			inspect( f.get(obj) , recursive);
-			System.out.println("******************");
-		    }
-		catch(Exception exp) { exp.printStackTrace(); }
-	    }
+		inspectObject(obj,  recursive);
     }
-//==============================================================================================   
+    
+    // inspects all fields under the object
+    private void inspectObject(Object obj, boolean recursive){
+		Vector objectsToInspect = new Vector();
+		Class ObjClass = obj.getClass();
+		
+		// inspects the current object
+		inspectFields(obj, ObjClass,objectsToInspect);
+		
+		//if recursive is true, inspects recrusively
+		if(recursive)
+		    inspectFieldClasses( obj, ObjClass, objectsToInspect, recursive);
+    }
+    
+    
+    // adds elements to the "to be inspected" vector
+    private void addObjectsToInspect(Object obj,Vector objectsToInspect){
+    	
+    	if (obj.getClass().isArray() &&(!obj.getClass().getComponentType().isPrimitive())){
+    		try{
+    			Class<?> cls=obj.getClass().getComponentType();
+    			Object newInstance=cls.newInstance();
+    			if(!inspectedList.contains(cls.getName()))
+    				objectsToInspect.addElement(newInstance);
+    		}
+    		catch(Exception e){}
+    	}
+    	else if (! obj.getClass().isPrimitive()){
+    		if(!inspectedList.contains(obj.getClass().getName()))
+    			objectsToInspect.addElement(obj);	
+    	}
+    }
+    
+    // gets names of fields the class declares and their type and modifiers
+    // if the field is an object reference and recursive is set to false, print out reference value
+    // if it's an array, name, component type, length, and all its contents are printed where valid
+    public String inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
+    	
+    	// checks if the object is already inspected
+    	if (chkInspectedList && inspectedList.contains(ObjClass.getName())){
+    		return "";
+    	}
+    	
+    	chkInspectedList=true;
+    	String printString = "";
+    	// if not, check if the specific object is an array type (for example, classB[13])
+    	// if it is, prints relevant information and puts it into "to be inspected" vector
+    	if (obj.getClass().isArray()){
+    		try{
+	    		printString+="\tType: "+ ObjClass.getTypeName()
+	    			+"\n\tComponent type: "+ObjClass.getComponentType().getName()
+	    			+"\n\tLength: "+Array.getLength(obj);
+	    		addObjectsToInspect( obj,objectsToInspect);
+    		}
+    		
+    		catch(Exception ex){}
+    	}
+    	
+    	// if it is not, inspects fields underneath
+    	else{ 
+    		inspectedList.add(ObjClass.getName());
+    		Field[] fields =ObjClass.getDeclaredFields();
+			if(ObjClass.getDeclaredFields().length >= 1){
+				// prints fields name, type, and modifiers
+				for (int i = 0; i < fields.length; i++ ){
+					inspectedList.add(fields[i].getName());
+					addObjectsToInspect( fields[i],objectsToInspect);
+					printString += "Field: " + fields[i].getName() + "\n";
+					printString += "\tType: " + fields[i].getType().getName() + "\n";
+					printString += getModifiers(fields[i]);
+					
+					fields[i].setAccessible(true);
+					
+					// if the field is not of primitive type
+					if(! fields[i].getType().isPrimitive()) {
+						// checks if it is an array
+						if (fields[i].getType().isArray()){
+							printString = addedNewLine(printString, inspectArray(fields[i], obj));	
+						}
+						
+						// not an array and tries to get reference value
+						else{
+							try{
+								printString += "\tReference value: " + fields[i].getType().getName() + " " + System.identityHashCode(fields[i].get(obj)) +"\n";
+							}
+							catch (Exception e){}
+						}
+					}
+					
+					// if the field is of primitive type
+					else{		
+						try {
+							printString += "\tValue: " + fields[i].get(obj) + "\n";
+						}
+						catch(Exception e) {}
+					}
+				}
+			}
+    	}
+		
+		// prints result
+		System.out.println(printString);
+		
+		// checks if superclass is not null; if not, inspects its immediate superclass
+		if(ObjClass.getSuperclass() != null){
+			System.out.println("---- Inspecting superclass: " + ObjClass.getSuperclass().getName() + " ----");
+		    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
+		}
+		return printString;
+    }
+    
+    // when recursive boolean is true, inspects objects in the vector
+    private void inspectFieldClasses(Object obj,Class ObjClass, Vector objectsToInspect,boolean recursive) {
+		if(objectsToInspect.size() > 0 )
+		    System.out.println("---- Inspecting Field Classes ----");
+		
+		Enumeration e = objectsToInspect.elements();
+		while(e.hasMoreElements())
+		    {
+			Object o = (Object) e.nextElement();
+			System.out.println("Inspecting Field: " + o.getClass().getName() );
+			try
+			    {
+				System.out.println("******************");
+				inspectObject( o , recursive);
+				System.out.println("******************");
+			    }
+			catch(Exception exp) { exp.printStackTrace(); }
+		    }
+    }
+
     // this method finds declaring class name and prints it
     // it also returns the name for unit tests
-    public String inspectDeclaringClass(Method ObjClass){
-         Class<?> dClass = ObjClass.getDeclaringClass();
-         if (dClass != null){
-             System.out.println("Declared Classes: " +dClass.getName());
-             return dClass.getName();
-         }
+    public String inspectDeclaringClass(Object obj){
+  	         Class<?> dClass = obj.getClass();
+	         if (dClass != null){
+	             System.out.println("Declared Class: " +dClass.getName());
+	             return dClass.getName();
+	         }
+    	
          return "";
      }
     
@@ -100,8 +211,6 @@ public class Inspector
     	else
     		return "";
     }
-    
-
     
     // helps with printing methods information
     private String addedNewLine(String s1, String s2){
@@ -218,57 +327,7 @@ public class Inspector
         return "\tModifier: Package-private (Default)\n";
     }
 
-    // gets names of fields the class declares and their type and modifiers
-    // if the field is an object reference and recursive is set to false, print out reference value
-    // if it's an array, name, component type, length, and all its contents are printed where valid
-    public String inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
-    	String printString = "";
-		if(ObjClass.getDeclaredFields().length >= 1){
-			Field[] fields = ObjClass.getDeclaredFields();
-			for (int i = 0; i < fields.length; i++ ){
-				printString += "Field: " + fields[i].getName() + "\n";
-				printString += "\tType: " + fields[i].getType().getName() + "\n";
-				printString += getModifiers(fields[i]);
-				
-				fields[i].setAccessible(true);
-				
-				// if the field is not of primitive type
-				if(! fields[i].getType().isPrimitive()) {
-					objectsToInspect.addElement(fields[i]);
-					// checks if it is an array
-					if (fields[i].getType().isArray()){
-						printString = addedNewLine(printString, inspectArray(fields[i], obj));	
-					}
-					
-					// not an array and tries to get reference value
-					else{
-						try{
-							printString += "\tReference value: " + fields[i].getType().getName() + " " + System.identityHashCode(fields[i].get(obj)) +"\n";
-						}
-						catch (Exception e){}
-					}
-				}
-				
-				// if the field is of primitive type
-				else{		
-					try {
-						printString += "\tValue: " + fields[i].get(obj) + "\n";
-					}
-					catch(Exception e) {}
-				}
-			}
-		}
-		
-		// prints result
-		System.out.println(printString);
-		// checks if superclass is not null
-		if(ObjClass.getSuperclass() != null){
-			System.out.println("---- Inspects superclass: " + ObjClass.getSuperclass().getName() + " ----");
-		    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
-		}
-		return printString;
-    }
-    
+    // inspects array and prints its length and contents
     private String inspectArray(Field field, Object obj){
     	String printString = "\tComponent type: " + field.getType().getComponentType().getName() + "\n";
 		
