@@ -170,7 +170,7 @@ public class Inspector
     	else
     		return "";
     }
-    
+
     // gets parameter types for objects
     private String getParameters(Object obj){
     	String printString2 = "";
@@ -207,27 +207,81 @@ public class Inspector
         	Constructor c = (Constructor) obj;
         	modifiers = c.getModifiers();
     	}
-        return "\tModifier: " + Modifier.toString(modifiers) + "\n\n";
-    	//else if (obj.getClass().getSimpleName().equals("Method"))
-    	
+        
+        else if (obj.getClass().getSimpleName().equals("Field")){
+        	Field c = (Field) obj;
+        	modifiers = c.getModifiers();
+    	}
+        if (modifiers != 0)
+        	return "\tModifier: " + Modifier.toString(modifiers) + "\n";
+        
+        return "\tModifier: Package-private (Default)\n";
     }
-//==============================================================================================  
-    private void inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
-		if(ObjClass.getDeclaredFields().length >= 1){ 
-			Field f = ObjClass.getDeclaredFields()[0];
-			
-			f.setAccessible(true);
-			
-			if(! f.getType().isPrimitive() ) 
-			    objectsToInspect.addElement( f );
-			
-			try {
-				System.out.println("Field: " + f.getName() + " = " + f.get(obj));
+
+    // gets names of fields the class declares and their type and modifiers
+    // if the field is an object reference and recursive is set to false, print out reference value
+    // if it's an array, name, component type, length, and all its contents are printed where valid
+    public String inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
+    	String printString = "";
+		if(ObjClass.getDeclaredFields().length >= 1){
+			Field[] fields = ObjClass.getDeclaredFields();
+			for (int i = 0; i < fields.length; i++ ){
+				printString += "Field: " + fields[i].getName() + "\n";
+				printString += "\tType: " + fields[i].getType().getName() + "\n";
+				printString += getModifiers(fields[i]);
+				
+				fields[i].setAccessible(true);
+				
+				// if the field is not of primitive type
+				if(! fields[i].getType().isPrimitive()) {
+					objectsToInspect.addElement(fields[i]);
+					// checks if it is an array
+					if (fields[i].getType().isArray()){
+						printString += "\tComponent type: " + fields[i].getType().getComponentType().getName() + "\n";
+						
+						// tries to get array length and its contents
+						try{
+							int l = Array.getLength(fields[i].get(obj));
+							printString += "\tLength: " + l + "\n";
+							String printString2 = "";
+							for (int j = 0; j < l; j++){								
+								if (printString2.equals("")){
+									printString2 += "\tValues: " + Array.get(fields[i].get(obj), j).toString();		
+								}
+								else
+									printString2 += ", " + Array.get(fields[i].get(obj), j).toString();
+							}
+							printString = addedNewLine(printString, printString2);	
+						}
+						catch (Exception e){}
+					}
+					
+					// not an array and tries to get reference value
+					else{
+						try{
+							printString += "\tReference value: " + fields[i].getType().getName() + " " + System.identityHashCode(fields[i].get(obj)) +"\n";
+						}
+						catch (Exception e){}
+					}
+				}
+				
+				// if the field is of primitive type
+				else{		
+					try {
+						printString += "\tValue: " + fields[i].get(obj) + "\n";
+					}
+					catch(Exception e) {}
+				}
 			}
-			catch(Exception e) {}    
 		}
-	
-		if(ObjClass.getSuperclass() != null)
+		
+		// prints result
+		System.out.println(printString);
+		// checks if superclass is not null
+		if(ObjClass.getSuperclass() != null){
+			System.out.println("---- Inspects superclass: " + ObjClass.getSuperclass().getName() + " ----");
 		    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
+		}
+		return printString;
     }
 }
