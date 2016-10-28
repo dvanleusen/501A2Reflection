@@ -55,9 +55,9 @@ public class Inspector
 		catch(Exception exp) { exp.printStackTrace(); }
 	    }
     }
-    
-    // this method finds class names and prints them
-    // it also returns them for unit tests
+//==============================================================================================   
+    // this method finds declaring class name and prints it
+    // it also returns the name for unit tests
     public String inspectDeclaringClass(Method ObjClass){
          Class<?> dClass = ObjClass.getDeclaringClass();
          if (dClass != null){
@@ -67,28 +67,34 @@ public class Inspector
          return "";
      }
     
-    private void inspectFields(Object obj,Class ObjClass,Vector objectsToInspect)
-  
-    {
-	
-	if(ObjClass.getDeclaredFields().length >= 1)
-	    {
-		Field f = ObjClass.getDeclaredFields()[0];
-		
-		f.setAccessible(true);
-		
-		if(! f.getType().isPrimitive() ) 
-		    objectsToInspect.addElement( f );
-		
-		try
-		    {
+    // this method finds name of immediate superclass and prints it
+    // it also returns the name for unit tests
+    public String inspectSuperClass(Class ObjClass){
+        if (ObjClass.getSuperclass()!=null){
+            System.out.println("SuperClass: " + ObjClass.getSuperclass().getName() );
+            return ObjClass.getSuperclass().getName() ;
+        }
+        else
+            return "";
+    }
+    
+//==============================================================================================  
+    private void inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
+		if(ObjClass.getDeclaredFields().length >= 1){ 
+			Field f = ObjClass.getDeclaredFields()[0];
 			
-			System.out.println("Field: " + f.getName() + " = " + f.get(obj));
-		    }
-		catch(Exception e) {}    
-	    }
-
-	if(ObjClass.getSuperclass() != null)
-	    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
+			f.setAccessible(true);
+			
+			if(! f.getType().isPrimitive() ) 
+			    objectsToInspect.addElement( f );
+			
+			try {
+				System.out.println("Field: " + f.getName() + " = " + f.get(obj));
+			}
+			catch(Exception e) {}    
+		}
+	
+		if(ObjClass.getSuperclass() != null)
+		    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
     }
 }
