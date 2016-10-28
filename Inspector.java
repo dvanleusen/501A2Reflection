@@ -78,6 +78,24 @@ public class Inspector
             return "";
     }
     
+    // this method finds the names of the interfaces the class implements and prints them
+    // it also returns the names for unit tests
+    public String inspectInterfaces(Class objClass){
+    	if (objClass.getInterfaces()!= null){
+    		String printString = "";
+    		Class<?>[] interfacesClasses = objClass.getInterfaces();
+    		for (int i = 0; i < interfacesClasses.length; i++){
+    			if (printString.equals(""))
+    				printString += interfacesClasses[i].getName();
+    			else
+    				printString += ", " + interfacesClasses[i].getName();
+    		}
+    		System.out.println("Interface(s): " + printString);
+    		return printString;
+    	}
+    	else
+    		return "";
+    }
 //==============================================================================================  
     private void inspectFields(Object obj,Class ObjClass,Vector objectsToInspect){
 		if(ObjClass.getDeclaredFields().length >= 1){ 
