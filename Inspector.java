@@ -237,23 +237,7 @@ public class Inspector
 					objectsToInspect.addElement(fields[i]);
 					// checks if it is an array
 					if (fields[i].getType().isArray()){
-						printString += "\tComponent type: " + fields[i].getType().getComponentType().getName() + "\n";
-						
-						// tries to get array length and its contents
-						try{
-							int l = Array.getLength(fields[i].get(obj));
-							printString += "\tLength: " + l + "\n";
-							String printString2 = "";
-							for (int j = 0; j < l; j++){								
-								if (printString2.equals("")){
-									printString2 += "\tValues: " + Array.get(fields[i].get(obj), j).toString();		
-								}
-								else
-									printString2 += ", " + Array.get(fields[i].get(obj), j).toString();
-							}
-							printString = addedNewLine(printString, printString2);	
-						}
-						catch (Exception e){}
+						printString = addedNewLine(printString, inspectArray(fields[i], obj));	
 					}
 					
 					// not an array and tries to get reference value
@@ -283,5 +267,26 @@ public class Inspector
 		    inspectFields(obj, ObjClass.getSuperclass() , objectsToInspect);
 		}
 		return printString;
+    }
+    
+    private String inspectArray(Field field, Object obj){
+    	String printString = "\tComponent type: " + field.getType().getComponentType().getName() + "\n";
+		
+		// tries to get array length and its contents
+		try{
+			int l = Array.getLength(field.get(obj));
+			printString += "\tLength: " + l + "\n";
+			String printString2 = "";
+			for (int j = 0; j < l; j++){								
+				if (printString2.equals("")){
+					printString2 += "\tValues: " + Array.get(field.get(obj), j).toString();		
+				}
+				else
+					printString2 += ", " + Array.get(field.get(obj), j).toString();
+			}
+			printString = printString + printString2;	
+		}
+		catch (Exception e){}
+    	return printString;
     }
 }
